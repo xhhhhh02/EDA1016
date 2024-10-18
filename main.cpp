@@ -8,6 +8,8 @@
 #include <iostream>
 #include <fstream>
 #include <regex>
+#include <variant>
+#include <random>
 
 #include "clktree_pack.cpp"
 
@@ -103,7 +105,7 @@ int main(int argc, char *argv[])
                 ffname = matches[1].str();
                 fflocatex = std::stoi(matches[2].str());
                 fflocatey = std::stoi(matches[3].str());
-                fflayer.push_back(FLIPFLOP(ffname, fflocatex, fflocatey));
+                fflayer.push_back(FLIPFLOP(fflocatex, fflocatey, ffname));
             }
         }
 #ifdef FILEINPUTDEBUG
@@ -118,6 +120,7 @@ int main(int argc, char *argv[])
 #endif
 #endif
         std::cout << "Read in FF number is " << fflayer.size() << std::endl;
+        global_param.ffnumber = fflayer.size();
         problemfile.close();
     }
     else
@@ -144,4 +147,57 @@ int main(int argc, char *argv[])
     // 时钟树输出
 }
 
+// 初始化BUFFER层的质心
+// K-means++ 初始化质心
+std::vector<BUFFER> initializeCentroids(const std::vector<std::variant<BUFFER, FLIPFLOP>> &bottoms, int k)
+{
+    std::vector<BUFFER> centroids;
+    std::default_random_engine generator;
+    std::uniform_int_distribution<int> distribution(0, bottoms.size() - 1);
+
+    // 随机选择第一个质心
+    if (typeid(BUFFER) == typeid(bottoms[0]))
+    {
+        std::variant<BUFFER, FLIPFLOP> tempvar = bottoms[distribution(generator)];
+        centroids.push_back(BUFFER(1, 1, "BUF0"));
+    }
+
+    for (int i = 1; i < k; ++i)
+    {
+        std::vector<double> minDist(points.size(), std::numeric_limits<double>::max());
+        std::vector<double> distanceWeights(points.size(), 0.0);
+
+        // 计算每个点到最近质心的曼哈顿距离
+        for (size_t j = 0; j < points.size(); ++j)
+        {
+            double minDistance = std::numeric_limits<double>::max();
+            for (const auto &centroid : centroids)
+            {
+                double distance = points[j].manhattanDistanceTo(centroid);
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                }
+            }
+            minDist[j] = minDistance;
+            distanceWeights[j] = 1.0 / minDistance;
+        }
+
+        // 计算下一个质心
+        double totalWeight = std::accumulate(distanceWeights.begin(), distanceWeights.end(), 0.0);
+        double r = (static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX)) * totalWeight;
+        double cumulativeWeight = 0.0;
+        for (size_t j = 0; j < distanceWeights.size(); ++j)
+        {
+            cumulativeWeight += distanceWeights[j];
+            if (cumulativeWeight >= r)
+            {
+                centroids.push_back(points[j]);
+                break;
+            }
+        }
+    }
+
+    return centroids;
+}
 #endif

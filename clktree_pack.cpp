@@ -24,9 +24,9 @@ public:
         double lasttothistime;
         double roottothistime;
 
-        FLIPFLOP(std::string ffname, int locatex, int locatey) : ffname(ffname),
-                                                                 locatex(locatex),
-                                                                 locatey(locatey)
+        FLIPFLOP(int locatex, int locatey, std::string ffname = "DEFAULT") : ffname(ffname),
+                                                                             locatex(locatex),
+                                                                             locatey(locatey)
         {
         }
 };
@@ -44,9 +44,9 @@ public:
         bool nxtisflipflop;
         list<FLIPFLOP> nxtflipflop;
 
-        BUFFER(std::string buffername, int locatex, int locatey) : buffername(buffername),
-                                                                   locatex(locatex),
-                                                                   locatey(locatey) {}
+        BUFFER(int locatex, int locatey, std::string buffername = "DEFAULT") : buffername(buffername),
+                                                                               locatex(locatex),
+                                                                               locatey(locatey) {}
 };
 
 class CLKROOT
@@ -268,6 +268,32 @@ public:
                 std::cout << "max_fanout is " << this->max_fanout << std::endl;
                 std::cout << "buffer_delay is " << this->buffer_delay << std::endl;
 #endif
+        }
+};
+
+class NAMECOUNTER
+{
+private:
+        std::string prefix;
+        int instanceCount; // 每个实例独有的计数器
+
+public:
+        // 构造函数
+        NAMECOUNTER(int initnumber, std::string prefix = "DEFAULT") : instanceCount(0), prefix(prefix)
+        {
+        }
+
+        // 析构函数
+        ~NAMECOUNTER()
+        {
+        }
+
+        // 每次访问时调用的函数，增加实例计数器
+        std::string GET_NAME()
+        {
+                std::string namestring = prefix + std::to_string(instanceCount);
+                ++instanceCount;
+                return namestring;
         }
 };
 
