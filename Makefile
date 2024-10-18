@@ -7,7 +7,9 @@ CXXFLAGS = -Wall -std=c++17
 
 #debug模式
 #文件输入DEBUG
-CXXFLAGS += -DFILEINPUTDEBUG
+#CXXFLAGS += -DFILEINPUTDEBUG
+#FF读入后是否输出
+#CXXFLAGS += -DFFREADINOUT
 
 # 定义链接选项
 LDFLAGS = 
@@ -23,19 +25,18 @@ SOURCES += ./clktree_pack.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 #定义要解决的problem
-PROBLEM = example_problem
+#PROBLEM = example_problem
+PROBLEM = problem1
 #定义def文件
 PROBLEM_FILE = ../$(PROBLEM)/problem.def
 #定义constrain文件
 CONSTRAIN_FILE = ../$(PROBLEM)/constraints.txt
 
 #编译并运行
-all:
-	make compile
-	make run
+all: clean compile run
 
 # 默认目标
-compile: $(TARGET)
+compile: clean $(TARGET)
 
 # 链接目标文件
 $(TARGET): $(OBJECTS)

@@ -157,9 +157,9 @@ public:
 #endif
                 this->globalareaminy = std::stoi(matchedStr);
                 problemline = matches.suffix();
-                std::cout << std::regex_search(problemline, matches, dieareapattern) << std::endl;
+                std::regex_search(problemline, matches, dieareapattern);
                 problemline = matches.suffix();
-                std::cout << std::regex_search(problemline, matches, dieareapattern) << std::endl;
+                std::regex_search(problemline, matches, dieareapattern);
                 matchedStr = matches[1].str();
 #ifdef FILEINPUTDEBUG
                 std::cout << matchedStr << std::endl;
@@ -231,46 +231,35 @@ public:
                 // net unit r
                 std::string constrainline;
                 std::getline(*constrainfile, constrainline);
-                std::regex constrainpattern(R"(\d+\.\d+|\d+\.|\.\d+|\d+)");
-                std::smatch matches;
-                std::string matchedStr;
-                std::regex_search(constrainline, matches, constrainpattern);
-                matchedStr = matches[1].str();
-                // std::cout << "NET_UNIT" << matchedStr << endl;
-                //  this->net_unit_r = std::stod(matches[1].str());
-                try
-                {
-                        double value = std::stod(matchedStr);
-                        std::cout << "Converted value: " << value << std::endl;
-                }
-                catch (const std::invalid_argument &e)
-                {
-                        std::cerr << "Invalid argument: " << e.what() << std::endl;
-                }
-                catch (const std::out_of_range &e)
-                {
-                        std::cerr << "Out of range: " << e.what() << std::endl;
-                }
+                std::string matchStr;
+                std::string equal = "=";
+                size_t equalpos = constrainline.find(equal);
+                matchStr = constrainline.substr(equalpos + equal.length() + 1);
+                this->net_unit_r = std::stod(matchStr);
 
                 // net unit c
                 std::getline(*constrainfile, constrainline);
-                std::regex_search(constrainline, matches, constrainpattern);
-                this->net_unit_c = std::stod(matches[1].str());
+                equalpos = constrainline.find(equal);
+                matchStr = constrainline.substr(equalpos + equal.length() + 1);
+                this->net_unit_c = std::stod(matchStr);
 
                 // max net rc
                 std::getline(*constrainfile, constrainline);
-                std::regex_search(constrainline, matches, constrainpattern);
-                this->max_net_rc = std::stod(matches[1].str());
+                equalpos = constrainline.find(equal);
+                matchStr = constrainline.substr(equalpos + equal.length() + 1);
+                this->max_net_rc = std::stod(matchStr);
 
                 // max fanout
                 std::getline(*constrainfile, constrainline);
-                std::regex_search(constrainline, matches, constrainpattern);
-                this->max_fanout = std::stoi(matches[1].str());
+                equalpos = constrainline.find(equal);
+                matchStr = constrainline.substr(equalpos + equal.length() + 1);
+                this->max_fanout = std::stoi(matchStr);
 
                 // buffer_delay
                 std::getline(*constrainfile, constrainline);
-                std::regex_search(constrainline, matches, constrainpattern);
-                this->buffer_delay = std::stod(matches[1].str());
+                equalpos = constrainline.find(equal);
+                matchStr = constrainline.substr(equalpos + equal.length() + 1);
+                this->buffer_delay = std::stod(matchStr);
 
 #ifdef FILEINPUTDEBUG
                 std::cout << "net_unit_r is " << this->net_unit_r << std::endl;

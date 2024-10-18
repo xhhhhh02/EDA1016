@@ -89,9 +89,7 @@ int main(int argc, char *argv[])
         std::regex_search(problemline, matches, componentnumberpattern);
         matchedStr = matches[1].str();
         uint32_t componentnumber = std::stoi(matchedStr);
-#ifdef FILEINPUTDEBUG
         std::cout << "Components number is " << componentnumber << std::endl;
-#endif
         std::regex componentpattern(R"((\w+)\s+\w+\s+\(\s*(\d+)\s+(\d+)\s*\))");
         for (uint32_t i = 0; i < componentnumber; i++)
         {
@@ -109,14 +107,17 @@ int main(int argc, char *argv[])
             }
         }
 #ifdef FILEINPUTDEBUG
+#ifdef FFREADINOUT
         FLIPFLOP tempffout("FF0", 0, 0);
-        std::cout << "FFlayer number is " << fflayer.size() << std::endl;
+
         for (uint32_t i = 0; i < fflayer.size(); i++)
         {
             tempffout = fflayer[i];
             std::cout << "component " << tempffout.ffname << " at x: " << tempffout.locatex << " y: " << tempffout.locatey << std::endl;
         }
 #endif
+#endif
+        std::cout << "Read in FF number is " << fflayer.size() << std::endl;
         problemfile.close();
     }
     else
@@ -130,15 +131,6 @@ int main(int argc, char *argv[])
     {
         constrainfile.seekg(0, std::ios::beg);
         constrain.CONSTRAIN_FILEINIT(&constrainfile);
-
-#ifdef FILEINPUTDEBUG
-        std::cout << "net_unit_r is " << constrain.net_unit_r << std::endl;
-        std::cout << "net_unit_c is " << constrain.net_unit_c << std::endl;
-        std::cout << "max_net_rc is " << constrain.max_net_rc << std::endl;
-        std::cout << "max_fanout is " << constrain.max_fanout << std::endl;
-        std::cout << "buffer_delay is " << constrain.buffer_delay << std::endl;
-#endif
-
         constrainfile.close();
     }
     else
@@ -146,6 +138,10 @@ int main(int argc, char *argv[])
         std::cerr << "Unable to open constrain file for reading." << std::endl;
         return 0;
     }
+
+    // 算法
+
+    // 时钟树输出
 }
 
 #endif
