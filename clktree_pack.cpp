@@ -214,14 +214,14 @@ public:
 class CONSTRAIN
 {
 public:
-        double net_uint_r;
-        double net_uint_c;
+        double net_unit_r;
+        double net_unit_c;
         double max_net_rc;
         int max_fanout;
         double buffer_delay;
 
-        CONSTRAIN() : net_uint_r(0),
-                      net_uint_c(0),
+        CONSTRAIN() : net_unit_r(0),
+                      net_unit_c(0),
                       max_net_rc(0),
                       max_fanout(0),
                       buffer_delay(0) {}
@@ -231,8 +231,54 @@ public:
                 // net unit r
                 std::string constrainline;
                 std::getline(*constrainfile, constrainline);
-                std::regex netunitrpattern(R"(\s(\d+)\s)");
+                std::regex constrainpattern(R"(\d+\.\d+|\d+\.|\.\d+|\d+)");
                 std::smatch matches;
+                std::string matchedStr;
+                std::regex_search(constrainline, matches, constrainpattern);
+                matchedStr = matches[1].str();
+                // std::cout << "NET_UNIT" << matchedStr << endl;
+                //  this->net_unit_r = std::stod(matches[1].str());
+                try
+                {
+                        double value = std::stod(matchedStr);
+                        std::cout << "Converted value: " << value << std::endl;
+                }
+                catch (const std::invalid_argument &e)
+                {
+                        std::cerr << "Invalid argument: " << e.what() << std::endl;
+                }
+                catch (const std::out_of_range &e)
+                {
+                        std::cerr << "Out of range: " << e.what() << std::endl;
+                }
+
+                // net unit c
+                std::getline(*constrainfile, constrainline);
+                std::regex_search(constrainline, matches, constrainpattern);
+                this->net_unit_c = std::stod(matches[1].str());
+
+                // max net rc
+                std::getline(*constrainfile, constrainline);
+                std::regex_search(constrainline, matches, constrainpattern);
+                this->max_net_rc = std::stod(matches[1].str());
+
+                // max fanout
+                std::getline(*constrainfile, constrainline);
+                std::regex_search(constrainline, matches, constrainpattern);
+                this->max_fanout = std::stoi(matches[1].str());
+
+                // buffer_delay
+                std::getline(*constrainfile, constrainline);
+                std::regex_search(constrainline, matches, constrainpattern);
+                this->buffer_delay = std::stod(matches[1].str());
+
+#ifdef FILEINPUTDEBUG
+                std::cout << "net_unit_r is " << this->net_unit_r << std::endl;
+                std::cout << "net_unit_c is " << this->net_unit_c << std::endl;
+                std::cout << "max_net_rc is " << this->max_net_rc << std::endl;
+                std::cout << "max_fanout is " << this->max_fanout << std::endl;
+                std::cout << "buffer_delay is " << this->buffer_delay << std::endl;
+#endif
         }
 };
 

@@ -19,6 +19,7 @@ using namespace std;
 int main(int argc, char *argv[])
 {
     GLOBAL_PARAM global_param;
+    CONSTRAIN constrain;
     CLKROOT clkroot(0, 0);
     vector<FLIPFLOP> fflayer;
 
@@ -128,13 +129,14 @@ int main(int argc, char *argv[])
     if (constrainfile.is_open())
     {
         constrainfile.seekg(0, std::ios::beg);
-        std::string constrainline;
+        constrain.CONSTRAIN_FILEINIT(&constrainfile);
 
 #ifdef FILEINPUTDEBUG
-        while (std::getline(constrainfile, constrainline))
-        {
-            std::cout << constrainline << std::endl;
-        }
+        std::cout << "net_unit_r is " << constrain.net_unit_r << std::endl;
+        std::cout << "net_unit_c is " << constrain.net_unit_c << std::endl;
+        std::cout << "max_net_rc is " << constrain.max_net_rc << std::endl;
+        std::cout << "max_fanout is " << constrain.max_fanout << std::endl;
+        std::cout << "buffer_delay is " << constrain.buffer_delay << std::endl;
 #endif
 
         constrainfile.close();
