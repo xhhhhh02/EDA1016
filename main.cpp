@@ -11,8 +11,8 @@
 
 #include "clktree_pack.cpp"
 
-// debug mode
-// #define DEBUG
+// FILEINPUTDEBUG mode
+// #define FILEINPUTDEBUG
 
 using namespace std;
 
@@ -20,6 +20,7 @@ int main(int argc, char *argv[])
 {
     GLOBAL_PARAM global_param;
     CLKROOT clkroot(0, 0);
+    vector<FLIPFLOP> fflayer;
 
     // 读入命令行参数
     bool problemflag = false;
@@ -28,7 +29,7 @@ int main(int argc, char *argv[])
     string problemfilepath;
     string constrainfilepath;
 
-#ifdef DEBUG
+#ifdef FILEINPUTDEBUG
     std::cout << "Number of command line arguments: " << argc << std::endl;
 #endif
 
@@ -87,14 +88,32 @@ int main(int argc, char *argv[])
         std::regex_search(problemline, matches, componentnumberpattern);
         matchedStr = matches[1].str();
         uint32_t componentnumber = std::stoi(matchedStr);
-#ifdef DEBUG
-        std::cout << "Components number is " << problemline << std::endl;
+#ifdef FILEINPUTDEBUG
+        std::cout << "Components number is " << componentnumber << std::endl;
 #endif
-
-#ifdef DEBUG
-        while (std::getline(problemfile, problemline))
+        std::regex componentpattern(R"((\w+)\s+\w+\s+\(\s*(\d+)\s+(\d+)\s*\))");
+        for (uint32_t i = 0; i < componentnumber; i++)
         {
-            std::cout << problemline << std::endl;
+
+            std::getline(problemfile, problemline);
+            std::string ffname;
+            int fflocatex;
+            int fflocatey;
+            if (std::regex_search(problemline, matches, componentpattern))
+            {
+                ffname = matches[1].str();
+                fflocatex = std::stoi(matches[2].str());
+                fflocatey = std::stoi(matches[3].str());
+                fflayer.push_back(FLIPFLOP(ffname, fflocatex, fflocatey));
+            }
+        }
+#ifdef FILEINPUTDEBUG
+        FLIPFLOP tempffout("FF0", 0, 0);
+        std::cout << "FFlayer number is " << fflayer.size() << std::endl;
+        for (uint32_t i = 0; i < fflayer.size(); i++)
+        {
+            tempffout = fflayer[i];
+            std::cout << "component " << tempffout.ffname << " at x: " << tempffout.locatex << " y: " << tempffout.locatey << std::endl;
         }
 #endif
         problemfile.close();
@@ -109,10 +128,9 @@ int main(int argc, char *argv[])
     if (constrainfile.is_open())
     {
         constrainfile.seekg(0, std::ios::beg);
-
         std::string constrainline;
 
-#ifdef DEBUG
+#ifdef FILEINPUTDEBUG
         while (std::getline(constrainfile, constrainline))
         {
             std::cout << constrainline << std::endl;

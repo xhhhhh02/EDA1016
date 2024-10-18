@@ -3,10 +3,11 @@
 CXX = g++
 
 # 定义编译选项
-CXXFLAGS = -Wall -std=c++11
+CXXFLAGS = -Wall -std=c++17
 
 #debug模式
-CXXFLAGS += -DDEBUG
+#文件输入DEBUG
+CXXFLAGS += -DFILEINPUTDEBUG
 
 # 定义链接选项
 LDFLAGS = 
