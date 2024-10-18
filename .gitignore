@@ -3,6 +3,8 @@
 
 .vscode/tasks.json
 
+.vscode/
+
 *.o
 
 *.exe
