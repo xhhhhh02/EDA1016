@@ -47,6 +47,11 @@ public:
         BUFFER(int locatex, int locatey, std::string buffername = "DEFAULT") : buffername(buffername),
                                                                                locatex(locatex),
                                                                                locatey(locatey) {}
+
+        std::vector<int, int> GET_POSITION()
+        {
+                vector
+        }
 };
 
 class CLKROOT
