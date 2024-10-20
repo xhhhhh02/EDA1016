@@ -18,6 +18,8 @@
 
 using namespace std;
 
+NAMECOUNTER ffnamecounter(0, "BUF");
+
 int main(int argc, char *argv[])
 {
     GLOBAL_PARAM global_param;
@@ -159,7 +161,7 @@ std::vector<BUFFER> initializeCentroids(const std::vector<std::variant<BUFFER, F
     if (typeid(BUFFER) == typeid(bottoms[0]))
     {
         std::variant<BUFFER, FLIPFLOP> tempvar = bottoms[distribution(generator)];
-        centroids.push_back(BUFFER(1, 1, "BUF0"));
+        centroids.push_back(BUFFER(1, 1, ffnamecounter.GET_NAME()));
     }
 
     for (int i = 1; i < k; ++i)
