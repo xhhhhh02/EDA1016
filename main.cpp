@@ -11,7 +11,7 @@
 #include <variant>
 #include <random>
 
-#include "clktree_pack.cpp"
+#include "clktree_pack.hpp"
 
 // FILEINPUTDEBUG mode
 // #define FILEINPUTDEBUG
@@ -19,10 +19,11 @@
 using namespace std;
 
 NAMECOUNTER ffnamecounter(0, "BUF");
+GLOBAL_PARAM global_param;
 
 int main(int argc, char *argv[])
 {
-    GLOBAL_PARAM global_param;
+
     CONSTRAIN constrain;
     CLKROOT clkroot(0, 0);
     vector<FLIPFLOP> fflayer;
@@ -151,31 +152,33 @@ int main(int argc, char *argv[])
 
 // 初始化BUFFER层的质心
 // K-means++ 初始化质心
-std::vector<BUFFER> initializeCentroids(const std::vector<std::variant<BUFFER, FLIPFLOP>> &bottoms, int k)
+std::vector<BUFFER> initializeCentroids(std::vector<std::variant<BUFFER, FLIPFLOP>> &bottoms, int k)
 {
     std::vector<BUFFER> centroids;
     std::default_random_engine generator;
     std::uniform_int_distribution<int> distribution(0, bottoms.size() - 1);
 
     // 随机选择第一个质心
-    if (typeid(BUFFER) == typeid(bottoms[0]))
-    {
-        std::variant<BUFFER, FLIPFLOP> tempvar = bottoms[distribution(generator)];
-        centroids.push_back(BUFFER(1, 1, ffnamecounter.GET_NAME()));
-    }
+    std::variant<BUFFER, FLIPFLOP> tempvar = bottoms[distribution(generator)];
+    std::vector<int> templocation = std::visit([](auto &obj)
+                                               { return obj.GET_POSITION(); },
+                                               tempvar);
+    centroids.push_back(BUFFER(templocation[0], templocation[1], ffnamecounter.GET_NAME()));
 
     for (int i = 1; i < k; ++i)
     {
-        std::vector<double> minDist(points.size(), std::numeric_limits<double>::max());
-        std::vector<double> distanceWeights(points.size(), 0.0);
+        std::vector<int> minDist(bottoms.size(), std::numeric_limits<int>::max());
+        std::vector<double> distanceWeights(bottoms.size(), 0.0);
 
         // 计算每个点到最近质心的曼哈顿距离
-        for (size_t j = 0; j < points.size(); ++j)
+        for (size_t j = 0; j < bottoms.size(); ++j)
         {
             double minDistance = std::numeric_limits<double>::max();
-            for (const auto &centroid : centroids)
+            for (auto &centroidbuf : centroids)
             {
-                double distance = points[j].manhattanDistanceTo(centroid);
+                int distance = std::visit([centroidbuf](auto &obj)
+                                          { return obj.MaHatanToBUFFER(centroidbuf); },
+                                          bottoms[j]);
                 if (distance < minDistance)
                 {
                     minDistance = distance;
@@ -194,7 +197,11 @@ std::vector<BUFFER> initializeCentroids(const std::vector<std::variant<BUFFER, F
             cumulativeWeight += distanceWeights[j];
             if (cumulativeWeight >= r)
             {
-                centroids.push_back(points[j]);
+                tempvar = bottoms[distribution(generator)];
+                templocation = std::visit([](auto &obj)
+                                          { return obj.GET_POSITION(); },
+                                          tempvar);
+                centroids.push_back(BUFFER(templocation[0], templocation[1], ffnamecounter.GET_NAME()));
                 break;
             }
         }

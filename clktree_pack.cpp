@@ -9,100 +9,14 @@
 #include <fstream>
 #include <regex>
 
+#include "clktree_pack.hpp"
+
 using namespace std;
+
+extern GLOBAL_PARAM global_param;
 
 class PHYINFO
 {
-};
-
-class FLIPFLOP
-{
-public:
-        string ffname;
-        int locatex;
-        int locatey;
-        double lasttothistime;
-        double roottothistime;
-
-        FLIPFLOP(int locatex, int locatey, std::string ffname = "DEFAULT") : ffname(ffname),
-                                                                             locatex(locatex),
-                                                                             locatey(locatey)
-        {
-        }
-};
-
-class BUFFER
-{
-public:
-        string buffername;
-        int locatex;
-        int locatey;
-        double lasttothistime;
-        double roottothistime;
-        bool nxtisbuffer;
-        list<BUFFER> nxtbuffer;
-        bool nxtisflipflop;
-        list<FLIPFLOP> nxtflipflop;
-
-        BUFFER(int locatex, int locatey, std::string buffername = "DEFAULT") : buffername(buffername),
-                                                                               locatex(locatex),
-                                                                               locatey(locatey) {}
-
-        std::vector<int, int> GET_POSITION()
-        {
-                vector
-        }
-};
-
-class CLKROOT
-{
-public:
-        int locatex;
-        int locatey;
-        list<BUFFER> nxtbuffer;
-
-        CLKROOT(int locatex, int locatey) : locatex(locatex),
-                                            locatey(locatey) {}
-
-        void CLK_SET_LOCATEX(int locatex)
-        {
-                this->locatex = locatex;
-        }
-
-        void CLK_SET_LOCATEY(int locatey)
-        {
-                this->locatey = locatey;
-        }
-
-        void CLK_SET_LOCATE(int locatex, int locatey)
-        {
-                this->CLK_SET_LOCATEX(locatex);
-                this->CLK_SET_LOCATEY(locatey);
-        }
-
-        void CLK_FILEINIT(std::ifstream *problemfile)
-        {
-                std::string problemline;
-                std::getline(*problemfile, problemline);
-                std::regex clkrootpattern("\\( (\\d+) (\\d+) \\)");
-                std::smatch matches;
-                std::string matchedStr;
-#ifdef FILEINPUTDEBUG
-                std::cout << std::regex_search(problemline, matches, clkrootpattern) << std::endl;
-#else
-                std::regex_search(problemline, matches, clkrootpattern);
-#endif
-                matchedStr = matches[1].str();
-#ifdef FILEINPUTDEBUG
-                std::cout << matchedStr << std::endl;
-#endif
-                this->locatex = std::stoi(matchedStr);
-                matchedStr = matches[2].str();
-#ifdef FILEINPUTDEBUG
-                std::cout << matchedStr << std::endl;
-#endif
-                this->locatey = std::stoi(matchedStr);
-        }
 };
 
 class GLOBAL_PARAM
@@ -119,6 +33,8 @@ public:
         int ffsizex;
         int ffsizey;
         int ffnumber;
+        int biasx;
+        int biasy;
 
         GLOBAL_PARAM() : units(0),
                          globalareaminx(0),
@@ -130,7 +46,11 @@ public:
                          buffernumber(0),
                          ffsizex(0),
                          ffsizey(0),
-                         ffnumber(0) {}
+                         ffnumber(0),
+                         biasx(0),
+                         biasy(0)
+        {
+        }
 
         void GLOBAL_PARAM_FILEINIT(ifstream *problemfile)
         {
@@ -213,6 +133,124 @@ public:
                 std::cout << matchedStr << std::endl;
 #endif
                 this->buffersizey = std::stoi(matchedStr);
+
+                // bias设置
+                this->biasx = (this->ffsizex - this->buffersizex) >> 1;
+                this->biasy = (this->ffsizey - this->buffersizey) >> 1;
+        }
+};
+
+class BUFFER
+{
+public:
+        string buffername;
+        std::vector<int> position;
+        double lasttothistime;
+        double roottothistime;
+        bool nxtisbuffer;
+        list<BUFFER> nxtbuffer;
+        bool nxtisflipflop;
+        list<FLIPFLOP> nxtflipflop;
+
+        BUFFER(int locatex, int locatey, std::string buffername = "DEFAULT") : buffername(buffername)
+        {
+                this->position.push_back(locatex);
+                this->position.push_back(locatey);
+        }
+
+        std::vector<int> GET_POSITION()
+        {
+                return this->position;
+        }
+
+        int MaHatanToBUFFER(BUFFER distbuffer)
+        {
+                vector<int> distposition = distbuffer.GET_POSITION();
+                return abs(this->position[0] - distposition[0]) + abs(this->position[1] - distposition[1]);
+        }
+};
+
+class FLIPFLOP
+{
+public:
+        string ffname;
+        std::vector<int> position;
+        double lasttothistime;
+        double roottothistime;
+
+        FLIPFLOP(int locatex, int locatey, std::string ffname = "DEFAULT") : ffname(ffname)
+        {
+                this->position.push_back(locatex);
+                this->position.push_back(locatey);
+        }
+
+        std::vector<int> GET_POSITION()
+        {
+                return this->position;
+        }
+
+        int MaHatanToBUFFER(BUFFER distbuffer)
+        {
+                vector<int> distposition = distbuffer.GET_POSITION();
+                return abs(this->position[0] - distposition[0] + global_param.biasx) + abs(this->position[1] - distposition[1] + global_param.biasy);
+        }
+};
+
+class CLKROOT
+{
+public:
+        std::vector<int> position;
+        list<BUFFER> nxtbuffer;
+
+        CLKROOT(int locatex, int locatey)
+        {
+                this->position.push_back(locatex);
+                this->position.push_back(locatey);
+        }
+
+        void CLK_SET_LOCATEX(int locatex)
+        {
+                this->position[0] = locatex;
+        }
+
+        void CLK_SET_LOCATEY(int locatey)
+        {
+                this->position[1] = locatey;
+        }
+
+        void CLK_SET_LOCATE(int locatex, int locatey)
+        {
+                this->CLK_SET_LOCATEX(locatex);
+                this->CLK_SET_LOCATEY(locatey);
+        }
+
+        void CLK_FILEINIT(std::ifstream *problemfile)
+        {
+                std::string problemline;
+                std::getline(*problemfile, problemline);
+                std::regex clkrootpattern("\\( (\\d+) (\\d+) \\)");
+                std::smatch matches;
+                std::string matchedStr;
+#ifdef FILEINPUTDEBUG
+                std::cout << std::regex_search(problemline, matches, clkrootpattern) << std::endl;
+#else
+                std::regex_search(problemline, matches, clkrootpattern);
+#endif
+                matchedStr = matches[1].str();
+#ifdef FILEINPUTDEBUG
+                std::cout << matchedStr << std::endl;
+#endif
+                this->position[0] = std::stoi(matchedStr);
+                matchedStr = matches[2].str();
+#ifdef FILEINPUTDEBUG
+                std::cout << matchedStr << std::endl;
+#endif
+                this->position[1] = std::stoi(matchedStr);
+        }
+
+        std::vector<int> GET_POSITION()
+        {
+                return this->position;
         }
 };
 
@@ -279,8 +317,8 @@ public:
 class NAMECOUNTER
 {
 private:
-        std::string prefix;
         int instanceCount; // 每个实例独有的计数器
+        std::string prefix;
 
 public:
         // 构造函数
