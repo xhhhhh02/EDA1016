@@ -9,9 +9,12 @@
 #include <fstream>
 #include <regex>
 
-#include "clktree_pack.hpp"
+#include "clktree_pack.cpp"
 
 using namespace std;
+
+class GLOBAL_PARAM;
+class FLIPFLOP;
 
 extern GLOBAL_PARAM global_param;
 
@@ -147,15 +150,17 @@ public:
         std::vector<int> position;
         double lasttothistime;
         double roottothistime;
+        BUFFER *lastbuffer;
         bool nxtisbuffer;
-        list<BUFFER> nxtbuffer;
+        list<BUFFER *> nxtbuffer;
         bool nxtisflipflop;
-        list<FLIPFLOP> nxtflipflop;
+        list<FLIPFLOP *> nxtflipflop;
 
         BUFFER(int locatex, int locatey, std::string buffername = "DEFAULT") : buffername(buffername)
         {
                 this->position.push_back(locatex);
                 this->position.push_back(locatey);
+                this->lastbuffer = nullptr;
         }
 
         std::vector<int> GET_POSITION()
@@ -177,11 +182,13 @@ public:
         std::vector<int> position;
         double lasttothistime;
         double roottothistime;
+        BUFFER *lastbuffer;
 
         FLIPFLOP(int locatex, int locatey, std::string ffname = "DEFAULT") : ffname(ffname)
         {
                 this->position.push_back(locatex);
                 this->position.push_back(locatey);
+                this->lastbuffer = nullptr;
         }
 
         std::vector<int> GET_POSITION()

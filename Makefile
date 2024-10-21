@@ -18,15 +18,16 @@ LDFLAGS =
 TARGET = solution
 
 # 定义源文件
-SOURCES = ./main.cpp
-SOURCES += ./clktree_pack.cpp
+SOURCES = ./clktree_pack.cpp
+SOURCES += ./main.cpp
+
 
 # 定义对象文件
 OBJECTS = $(SOURCES:.cpp=.o)
 
 #定义要解决的problem
-#PROBLEM = example_problem
-PROBLEM = problem1
+PROBLEM = example_problem
+#PROBLEM = problem1
 #定义def文件
 PROBLEM_FILE = ../$(PROBLEM)/problem.def
 #定义constrain文件

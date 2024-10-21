@@ -10,8 +10,10 @@
 #include <regex>
 #include <variant>
 #include <random>
+#include <optional>
 
-#include "clktree_pack.hpp"
+// #include "clktree_pack.cpp"
+#include "main.hpp"
 
 // FILEINPUTDEBUG mode
 // #define FILEINPUTDEBUG
@@ -26,7 +28,7 @@ int main(int argc, char *argv[])
 
     CONSTRAIN constrain;
     CLKROOT clkroot(0, 0);
-    vector<FLIPFLOP> fflayer;
+    std::vector<FLIPFLOP> fflayer;
 
     // 读入命令行参数
     bool problemflag = false;
@@ -118,7 +120,7 @@ int main(int argc, char *argv[])
         for (uint32_t i = 0; i < fflayer.size(); i++)
         {
             tempffout = fflayer[i];
-            std::cout << "component " << tempffout.ffname << " at x: " << tempffout.locatex << " y: " << tempffout.locatey << std::endl;
+            std::cout << "component " << tempffout.ffname << " at x: " << tempffout.position[0] << " y: " << tempffout.position[1] << std::endl;
         }
 #endif
 #endif
@@ -146,23 +148,28 @@ int main(int argc, char *argv[])
     }
 
     // 算法
+    std::vector<BUFFER> layer0;
+    layer0 = initializeCentroidsforFF(fflayer, 3);
+
+    for (auto &layer0component : layer0)
+    {
+        std::cout << "component " << layer0component.buffername << " at x: " << layer0component.position[0] << " y: " << layer0component.position[1] << std::endl;
+    }
 
     // 时钟树输出
 }
 
 // 初始化BUFFER层的质心
 // K-means++ 初始化质心
-std::vector<BUFFER> initializeCentroids(std::vector<std::variant<BUFFER, FLIPFLOP>> &bottoms, int k)
+std::vector<BUFFER> initializeCentroidsforFF(std::vector<FLIPFLOP> &bottoms, int k)
 {
     std::vector<BUFFER> centroids;
     std::default_random_engine generator;
     std::uniform_int_distribution<int> distribution(0, bottoms.size() - 1);
 
     // 随机选择第一个质心
-    std::variant<BUFFER, FLIPFLOP> tempvar = bottoms[distribution(generator)];
-    std::vector<int> templocation = std::visit([](auto &obj)
-                                               { return obj.GET_POSITION(); },
-                                               tempvar);
+    FLIPFLOP tempvar = bottoms[distribution(generator)];
+    std::vector<int> templocation = tempvar.GET_POSITION();
     centroids.push_back(BUFFER(templocation[0], templocation[1], ffnamecounter.GET_NAME()));
 
     for (int i = 1; i < k; ++i)
@@ -176,9 +183,7 @@ std::vector<BUFFER> initializeCentroids(std::vector<std::variant<BUFFER, FLIPFLO
             double minDistance = std::numeric_limits<double>::max();
             for (auto &centroidbuf : centroids)
             {
-                int distance = std::visit([centroidbuf](auto &obj)
-                                          { return obj.MaHatanToBUFFER(centroidbuf); },
-                                          bottoms[j]);
+                int distance = bottoms[j].MaHatanToBUFFER(centroidbuf);
                 if (distance < minDistance)
                 {
                     minDistance = distance;
@@ -198,9 +203,7 @@ std::vector<BUFFER> initializeCentroids(std::vector<std::variant<BUFFER, FLIPFLO
             if (cumulativeWeight >= r)
             {
                 tempvar = bottoms[distribution(generator)];
-                templocation = std::visit([](auto &obj)
-                                          { return obj.GET_POSITION(); },
-                                          tempvar);
+                templocation = tempvar.GET_POSITION();
                 centroids.push_back(BUFFER(templocation[0], templocation[1], ffnamecounter.GET_NAME()));
                 break;
             }
@@ -209,4 +212,59 @@ std::vector<BUFFER> initializeCentroids(std::vector<std::variant<BUFFER, FLIPFLO
 
     return centroids;
 }
+
+std::vector<BUFFER> initializeCentroidsforBUF(std::vector<BUFFER> &bottoms, int k)
+{
+    std::vector<BUFFER> centroids;
+    std::default_random_engine generator;
+    std::uniform_int_distribution<int> distribution(0, bottoms.size() - 1);
+
+    // 随机选择第一个质心
+    BUFFER tempvar = bottoms[distribution(generator)];
+    std::vector<int> templocation = tempvar.GET_POSITION();
+    centroids.push_back(BUFFER(templocation[0], templocation[1], ffnamecounter.GET_NAME()));
+
+    for (int i = 1; i < k; ++i)
+    {
+        std::vector<int> minDist(bottoms.size(), std::numeric_limits<int>::max());
+        std::vector<double> distanceWeights(bottoms.size(), 0.0);
+
+        // 计算每个点到最近质心的曼哈顿距离
+        for (size_t j = 0; j < bottoms.size(); ++j)
+        {
+            double minDistance = std::numeric_limits<double>::max();
+            for (auto &centroidbuf : centroids)
+            {
+                int distance = bottoms[j].MaHatanToBUFFER(centroidbuf);
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                }
+            }
+            minDist[j] = minDistance;
+            distanceWeights[j] = 1.0 / minDistance;
+        }
+
+        // 计算下一个质心
+        double totalWeight = std::accumulate(distanceWeights.begin(), distanceWeights.end(), 0.0);
+        double r = (static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX)) * totalWeight;
+        double cumulativeWeight = 0.0;
+        for (size_t j = 0; j < distanceWeights.size(); ++j)
+        {
+            cumulativeWeight += distanceWeights[j];
+            if (cumulativeWeight >= r)
+            {
+                tempvar = bottoms[distribution(generator)];
+                templocation = tempvar.GET_POSITION();
+                centroids.push_back(BUFFER(templocation[0], templocation[1], ffnamecounter.GET_NAME()));
+                break;
+            }
+        }
+    }
+
+    return centroids;
+}
+
+// k-means 算法核心
+
 #endif
