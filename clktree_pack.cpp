@@ -152,9 +152,9 @@ public:
         double roottothistime;
         BUFFER *lastbuffer;
         bool nxtisbuffer;
-        list<BUFFER *> nxtbuffer;
+        std::vector<BUFFER *> nxtbuffer;
         bool nxtisflipflop;
-        list<FLIPFLOP *> nxtflipflop;
+        std::vector<FLIPFLOP *> nxtflipflop;
 
         BUFFER(int locatex, int locatey, std::string buffername = "DEFAULT") : buffername(buffername)
         {
@@ -166,6 +166,77 @@ public:
         std::vector<int> GET_POSITION()
         {
                 return this->position;
+        }
+
+        void SET_POSITION(int locatex, int locatey)
+        {
+                this->position[0] = locatex;
+                this->position[1] = locatey;
+        }
+
+        void ADD_FF(FLIPFLOP *flipflop)
+        {
+                this->nxtisflipflop = true;
+                this->nxtflipflop.push_back(flipflop);
+        }
+
+        bool FF_ISEMPTY()
+        {
+                return this->nxtflipflop.empty();
+        }
+
+        std::size_t FF_NUMBER()
+        {
+                return this->nxtflipflop.size();
+        }
+
+        FLIPFLOP *READ_FF(std::size_t k)
+        {
+                if (k > this->nxtflipflop.size())
+                {
+                        return nullptr;
+                }
+                else
+                        return this->nxtflipflop[k];
+        }
+
+        void PRINT_FF()
+        {
+                for (size_t i = 0; i < this->nxtflipflop.size(); i++)
+                {
+                        std::cout << *nxtflipflop[i].ffname << " at x: " << nxtflipflop[i]->position[0] << " y: " << nxtflipflop[i]->position[1] << std::endl;
+                }
+        }
+
+        void ADD_BUF(BUFFER *buffer)
+        {
+                this->nxtisbuffer = true;
+                this->nxtbuffer.push_back(buffer);
+        }
+
+        bool BUF_ISEMPTY()
+        {
+                return this->nxtbuffer.empty();
+        }
+
+        std::size_t BUF_NUMBER()
+        {
+                return this->nxtbuffer.size();
+        }
+
+        BUFFER *READ_BUF(std::size_t k)
+        {
+                if (k > this->nxtbuffer.size())
+                {
+                        return nullptr;
+                }
+                else
+                        return this->nxtbuffer[k];
+        }
+
+        void ADD_UPBUFFER(BUFFER *lastbuffer)
+        {
+                this->lastbuffer = lastbuffer;
         }
 
         int MaHatanToBUFFER(BUFFER distbuffer)
@@ -194,6 +265,11 @@ public:
         std::vector<int> GET_POSITION()
         {
                 return this->position;
+        }
+
+        void ADD_UPBUFFER(BUFFER *lastbuffer)
+        {
+                this->lastbuffer = lastbuffer;
         }
 
         int MaHatanToBUFFER(BUFFER distbuffer)

@@ -87,43 +87,8 @@ int main(int argc, char *argv[])
         problemfile.seekg(0, std::ios::beg);
         global_param.GLOBAL_PARAM_FILEINIT(&problemfile);
         clkroot.CLK_FILEINIT(&problemfile);
+        fflayer = fflayer_create(&problemfile);
 
-        std::string problemline;
-        std::getline(problemfile, problemline);
-        std::smatch matches;
-        std::string matchedStr;
-        std::regex componentnumberpattern(R"((\d+))");
-        std::regex_search(problemline, matches, componentnumberpattern);
-        matchedStr = matches[1].str();
-        uint32_t componentnumber = std::stoi(matchedStr);
-        std::cout << "Components number is " << componentnumber << std::endl;
-        std::regex componentpattern(R"((\w+)\s+\w+\s+\(\s*(\d+)\s+(\d+)\s*\))");
-        for (uint32_t i = 0; i < componentnumber; i++)
-        {
-
-            std::getline(problemfile, problemline);
-            std::string ffname;
-            int fflocatex;
-            int fflocatey;
-            if (std::regex_search(problemline, matches, componentpattern))
-            {
-                ffname = matches[1].str();
-                fflocatex = std::stoi(matches[2].str());
-                fflocatey = std::stoi(matches[3].str());
-                fflayer.push_back(FLIPFLOP(fflocatex, fflocatey, ffname));
-            }
-        }
-#ifdef FILEINPUTDEBUG
-#ifdef FFREADINOUT
-        FLIPFLOP tempffout("FF0", 0, 0);
-
-        for (uint32_t i = 0; i < fflayer.size(); i++)
-        {
-            tempffout = fflayer[i];
-            std::cout << "component " << tempffout.ffname << " at x: " << tempffout.position[0] << " y: " << tempffout.position[1] << std::endl;
-        }
-#endif
-#endif
         std::cout << "Read in FF number is " << fflayer.size() << std::endl;
         global_param.ffnumber = fflayer.size();
         problemfile.close();
@@ -148,15 +113,68 @@ int main(int argc, char *argv[])
     }
 
     // 算法
-    std::vector<BUFFER> layer0;
-    layer0 = initializeCentroidsforFF(fflayer, 3);
+    // 初始化质心
+    std::vector<std::vector<BUFFER>> clktree;
+    clktree.push_back(initializeCentroidsforFF(fflayer, 3));
 
-    for (auto &layer0component : layer0)
+    for (auto &layer0component : clktree[0])
     {
         std::cout << "component " << layer0component.buffername << " at x: " << layer0component.position[0] << " y: " << layer0component.position[1] << std::endl;
     }
 
+    clktree[0] = kMeansforFF(fflayer, clktree[0], 30);
+
+    for (auto &layer0component : clktree[0])
+    {
+        std::cout << "component " << layer0component.buffername << " at x: " << layer0component.position[0] << " y: " << layer0component.position[1] << std::endl;
+        layer0component.PRINT_FF();
+    }
     // 时钟树输出
+}
+
+// peoblem.def读取并创建ff层
+std::vector<FLIPFLOP> fflayer_create(std::ifstream *problemfile)
+{
+    std::vector<FLIPFLOP> tempfflayer;
+
+    std::string problemline;
+    std::getline(*problemfile, problemline);
+    std::smatch matches;
+    std::string matchedStr;
+    std::regex componentnumberpattern(R"((\d+))");
+    std::regex_search(problemline, matches, componentnumberpattern);
+    matchedStr = matches[1].str();
+    uint32_t componentnumber = std::stoi(matchedStr);
+    std::cout << "Components number is " << componentnumber << std::endl;
+    std::regex componentpattern(R"((\w+)\s+\w+\s+\(\s*(\d+)\s+(\d+)\s*\))");
+    for (uint32_t i = 0; i < componentnumber; i++)
+    {
+
+        std::getline(*problemfile, problemline);
+        std::string ffname;
+        int fflocatex;
+        int fflocatey;
+        if (std::regex_search(problemline, matches, componentpattern))
+        {
+            ffname = matches[1].str();
+            fflocatex = std::stoi(matches[2].str());
+            fflocatey = std::stoi(matches[3].str());
+            tempfflayer.push_back(FLIPFLOP(fflocatex, fflocatey, ffname));
+        }
+    }
+#ifdef FILEINPUTDEBUG
+#ifdef FFREADINOUT
+    FLIPFLOP tempffout("FF0", 0, 0);
+
+    for (uint32_t i = 0; i < fflayer.size(); i++)
+    {
+        tempffout = fflayer[i];
+        std::cout << "component " << tempffout.ffname << " at x: " << tempffout.position[0] << " y: " << tempffout.position[1] << std::endl;
+    }
+#endif
+#endif
+
+    return tempfflayer;
 }
 
 // 初始化BUFFER层的质心
@@ -266,5 +284,74 @@ std::vector<BUFFER> initializeCentroidsforBUF(std::vector<BUFFER> &bottoms, int 
 }
 
 // k-means 算法核心
+std::vector<BUFFER> kMeansforFF(std::vector<FLIPFLOP> bottoms, std::vector<BUFFER> &initialCentroids, int maxIterations)
+{
+    std::vector<BUFFER> centroids = initialCentroids; // 使用传入的初始质心
+    std::vector<BUFFER> clusters;
+
+    for (size_t i = 0; i < centroids.size(); i++)
+    {
+        clusters.emplace_back(BUFFER(centroids[i].GET_POSITION()[0], centroids[i].GET_POSITION()[1], centroids[i].buffername));
+    }
+
+    for (int iter = 0; iter < maxIterations; ++iter)
+    {
+        // 将每个点分配给最近的质心
+        for (auto &flipflop : bottoms)
+        {
+            int minDistance = std::numeric_limits<int>::max();
+            int closestCentroidIndex = 0;
+
+            for (size_t i = 0; i < centroids.size(); ++i)
+            {
+                int distance = flipflop.MaHatanToBUFFER(centroids[i]);
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    closestCentroidIndex = i;
+                }
+            }
+
+            clusters[closestCentroidIndex].ADD_FF(&flipflop);
+        }
+
+        // 重新计算质心
+        for (size_t i = 0; i < centroids.size(); ++i)
+        {
+            if (clusters[i].FF_ISEMPTY())
+            {
+                // 如果某个簇没有点，则随机选择一个点作为新的质心
+                std::default_random_engine generator;
+                std::uniform_int_distribution<int> distribution(0, bottoms.size() - 1);
+                FLIPFLOP tempff = bottoms[distribution(generator)];
+                std::vector<int> tempposition = tempff.GET_POSITION();
+                centroids[i].SET_POSITION(tempposition[0], tempposition[1]);
+                continue;
+            }
+
+            // 根据簇内坐标确定质心
+            int sumx = 0;
+            int sumy = 0;
+            for (size_t j = 0; j < clusters[i].FF_NUMBER(); j++)
+            {
+                FLIPFLOP *tempflipflop;
+                tempflipflop = clusters[i].READ_FF(j);
+                if (nullptr != tempflipflop)
+                {
+                    sumx += tempflipflop->GET_POSITION()[0];
+                    sumy += tempflipflop->GET_POSITION()[1];
+                }
+                else
+                {
+                    continue;
+                }
+            }
+
+            clusters[i].SET_POSITION(int(sumx / clusters[i].FF_NUMBER()), int(sumy / clusters[i].FF_NUMBER()));
+        }
+    }
+
+    return clusters;
+}
 
 #endif
